@@ -5,8 +5,8 @@ const userController = require('../controllers/userController');
 //Basic CRUD for Accounts
 router.get('/getAllUsers', userController.getAllUsers);
 
-router.post('/login', userController.getSpecificUser);
+router.post('/login', userController.loginUser);
 
-router.post('/register', userController.createUser);
+router.post('/register', userController.createAccount);
 
 module.exports = router;

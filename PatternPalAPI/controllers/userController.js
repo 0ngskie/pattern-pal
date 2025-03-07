@@ -1,12 +1,10 @@
 const User = require("../models/user");
 const mysqlConnection = require("../mysql/mysqlConnection");
-const bcrypt = require('bcrypt');
 
 //Basic CRUD
 
 //Get All Users
 module.exports.getAllUsers = (req, res) => {
-
     const query = "SELECT * FROM users";
     mysqlConnection.query(query, (error, results) => {
         if (error) {
@@ -25,7 +23,7 @@ module.exports.getAllUsers = (req, res) => {
     });
 };
 
-module.exports.getSpecificUser = (req, res) => {
+module.exports.loginUser = (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -33,7 +31,7 @@ module.exports.getSpecificUser = (req, res) => {
     }
 
     const query = "SELECT * FROM users WHERE email = ?";
-    mysqlConnection.query(query, [email], async (error, results) => {
+    mysqlConnection.query(query, [email], (error, results) => {
         if (error) {
             console.error("Error fetching user:", error);
             return res.status(500).json({ error: "Internal server error" });
@@ -44,41 +42,30 @@ module.exports.getSpecificUser = (req, res) => {
         }
 
         const user = results[0];
-
-        // Compare hashed password with the entered password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        return res.status(200).json({ message: "Login successful", user });
+        
+        // Directly return the user without password validation
+        return res.status(200).json({ message: "User found", user });
     });
 };
 
-module.exports.createUser = async (req, res) => {
-    const { first_name, last_name, username, email, password } = req.body;
-
-    if (!email || !password || !first_name || !last_name || !username || !email || !password) {
-        return res.status(400).json({ error: "Please fill in all required fields" });
+module.exports.createAccount = (req, res) => {
+    const { firstName, lastName, email, password, confirmPassword } = req.body;
+  
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      return res.status(400).json({ error: "All fields are required" });
     }
-
-    try {
-        // Hash the password before storing it
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const query = "INSERT INTO users (first_name, last_name, username, email, password, account_role, user_credit) VALUES (?, ?, ?, ?, ?)";
-        mysqlConnection.query(query, [first_name, last_name, username, email, hashedPassword], 
-            (error, results) => {
-                if (error) {
-                    console.error("Error inserting user:", error);
-                    return res.status(500).json({ error: "Internal server error" });
-                }
-                return res.status(201).json({ message: "User registered successfully" });
-            }
-        );
-    } catch (error) {
-        console.error("Error hashing password:", error);
-        return res.status(500).json({ error: "Error processing request" });
+  
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match" });
     }
-};
+  
+    const query = "INSERT INTO users (firstName, lastName, email, password) VALUES (?, ?, ?, ?)";
+    mysqlConnection.query(query, [firstName, lastName, email, password], (error, res) => {
+      if (error) {
+        console.error("Error creating user:", error);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+  
+      return res.status(201).json({ message: "User created successfully" });
+    });
+  };
